@@ -1,0 +1,5 @@
+/database
+.env
+.env.backup
+.phpunit.result.cache
+/src/
