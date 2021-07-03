@@ -1,4 +1,8 @@
-version: '3'
+version: '3.1'
+
+volumes:
+  zero-redis:
+  zero-database:
 
 networks:
   laravel:
@@ -10,7 +14,7 @@ services:
       - laravel
     build:
       context: ./nginx
-    container_name: nginx
+    container_name: zero-nginx
     ports:
       - "8088:80"
     volumes:
@@ -20,10 +24,22 @@ services:
       - php
       - postgresql
 
+  redis:
+    container_name: zero-redis
+    volumes:
+      - 'zero-redis:/data'
+    ports:
+      - "63790:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+    image: library/redis:6.2.1-alpine
+    networks:
+      - laravel
+
   composer:
     build:
       context: ./composer
-    container_name: composer
+    container_name: zero-composer
     volumes:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     working_dir: ${APP_PATH_CONTAINER}
@@ -32,11 +48,11 @@ services:
     user: laravel
     networks:
       - laravel
-    entrypoint: [ 'composer', '--ignore-platform-reqs' ]
+    entrypoint: [ 'composer' ]
 
   npm:
     image: node:13.7
-    container_name: npm
+    container_name: zero-npm
     volumes:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     working_dir: ${APP_PATH_CONTAINER}
@@ -47,7 +63,7 @@ services:
       - laravel
     build:
       context: ./php
-    container_name: php
+    container_name: zero-php
     volumes:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     ports:
@@ -56,23 +72,28 @@ services:
   postgresql:
     networks:
       - laravel
-    container_name: pgdb
+    container_name: zero-pgdb
     restart: unless-stopped
     tty: true
     ports:
-      - "5432:54326"
+      - "54326:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - ${DB_PATH_HOST}:/var/lib/postgresql/data/
-    image: library/postgres:latest
+      - zero-database:/var/lib/postgresql/data/
+    image: library/postgres:13.2-alpine
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_PASSWORD}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   artisan:
     build:
       context: ./php
-    container_name: artisan
+    container_name: zero-artisan
     volumes:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     depends_on:
