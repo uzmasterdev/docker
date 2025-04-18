@@ -68,6 +68,8 @@ services:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     ports:
       - "9000:9000"
+    depends_on:
+      - artisan
 
   postgresql:
     networks:
@@ -98,8 +100,38 @@ services:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     depends_on:
       - postgresql
+      - schedule
+      - queue
     working_dir: ${APP_PATH_CONTAINER}
     user: laravel
     entrypoint: [ 'php', '/var/www/html/artisan' ]
+    networks:
+      - laravel
+
+  schedule:
+    build:
+      context: ./php
+    container_name: zero-schedule
+    volumes:
+      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
+    depends_on:
+      - postgresql
+    working_dir: ${APP_PATH_CONTAINER}
+    user: laravel
+    entrypoint: [ 'php', '/var/www/html/artisan', 'schedule:run' ]
+    networks:
+      - laravel
+
+  queue:
+    build:
+      context: ./php
+    container_name: zero-queue
+    volumes:
+      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
+    depends_on:
+      - postgresql
+    working_dir: ${APP_PATH_CONTAINER}
+    user: laravel
+    entrypoint: [ 'php', '/var/www/html/artisan', 'queue:work' ]
     networks:
       - laravel

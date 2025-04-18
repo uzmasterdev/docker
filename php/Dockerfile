@@ -1,8 +1,9 @@
 FROM php:7.4-fpm-alpine
 
-RUN set -ex && apk add --no-cache $PHPIZE_DEPS postgresql-dev
+RUN set -ex && apk add --no-cache $PHPIZE_DEPS postgresql-dev supervisor
 
 ADD ./www.conf /usr/local/etc/php-fpm.d/www.conf
+ADD ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN pecl install redis \
     && docker-php-ext-enable redis.so
